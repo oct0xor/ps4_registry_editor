@@ -2,14 +2,9 @@
 
 namespace Ps4EditLib.PsRegistry
 {
-    public static class PsRegistry
+    public static class Preferences
     {
-        public const short Integer = 0;
-        public const short String = 1;
-        public const short Binary = 2;
-        public const short Category = 0x10;
-
-        public static List<RegFile> RegFiles = new List<RegFile>
+        public static readonly List<RegFile> RegFiles = new List<RegFile>
         {
             new RegFile("registry.nvs", "/system_data/settings/system.nvs", 0x600),
             new RegFile("regcont.db", "/system_data/settings/system.idx", 0x14000),
@@ -18,7 +13,7 @@ namespace Ps4EditLib.PsRegistry
             new RegFile("regi.recover", "/system_data/settings/system.rec", 0x1800),
         };
 
-        public static List<RegInfo> RegTable = new List<RegInfo>
+        public static readonly List<RegInfo> RegTable = new List<RegInfo>
         {
             new RegInfo(0x01000000, 0x00000010, 0x00000000, "/REGISTRY"),
             new RegInfo(0x01010000, 0x00000000, 0x00000004, "/REGISTRY/version"),

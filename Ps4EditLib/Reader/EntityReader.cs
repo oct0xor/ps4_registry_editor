@@ -29,7 +29,7 @@ namespace Ps4EditLib.Reader
 
         private string GetCategory(uint regId)
         {
-            var info = PsRegistry.PsRegistry.RegTable.Find(x => x.RegId == regId);
+            var info = PsRegistry.Preferences.RegTable.Find(x => x.RegId == regId);
             var category = info == null ? $"Unknown 0x{regId:X8}" : info.Path;
 
             return category;
@@ -66,7 +66,7 @@ namespace Ps4EditLib.Reader
                 Crypto.XorData(data, 0x20 + i * 0x10, 0x10);
 
                 var regIdEnc1 = BitConverter.ToUInt32(data, 0x20 + i * 0x10);
-                var type = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 4);
+                var type = (EntryType)BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 4);
                 var size = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 6);
                 var regIdEnc2 = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 8);
                 var entryHash = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 0xA);
@@ -94,12 +94,12 @@ namespace Ps4EditLib.Reader
 
                 var category = GetCategory(regId);
 
-                if (type == PsRegistry.PsRegistry.Integer)
+                if (type == EntryType.Integer)
                 {
                     var bin = data.Skip((int)(0x20 + i * 0x10 + 0xC)).Take(size).ToArray();
                     Entries.Add(new Entry(i, regId, type, size, 0x20 + i * 0x10 + 0xC, value, category, bin));
                 }
-                else if (type == PsRegistry.PsRegistry.String || type == PsRegistry.PsRegistry.Binary)
+                else if (type == EntryType.String || type == EntryType.Binary)
                 {
                     Crypto.XorData(data, (int)(0x20 + entriesCount * 0x10 + value), size + 4);
 
@@ -148,7 +148,7 @@ namespace Ps4EditLib.Reader
             {
                 var regId = BitConverter.ToUInt32(idx, 0x24 + i * 0x10);
                 var size = BitConverter.ToUInt16(idx, 0x24 + i * 0x10 + 4);
-                var type = idx[0x24 + i * 0x10 + 6];
+                var type = (EntryType)idx[0x24 + i * 0x10 + 6];
                 var flag = idx[0x24 + i * 0x10 + 7];
                 var offset = BitConverter.ToInt32(idx, 0x24 + i * 0x10 + 8);
 
@@ -172,13 +172,13 @@ namespace Ps4EditLib.Reader
 
                 var category = GetCategory(regId);
 
-                if (type == PsRegistry.PsRegistry.Integer)
+                if (type == EntryType.Integer)
                 {
                     var value = BitConverter.ToUInt32(data, offset + 0x10 + 8);
                     var bin = data.Skip(offset + 0x10 + 8).Take(size).ToArray();
                     Entries.Add(new Entry(i, regId, type, size, offset + 0x10 + 8, value, category, bin));
                 }
-                else if (type == PsRegistry.PsRegistry.String || type == PsRegistry.PsRegistry.Binary)
+                else if (type == EntryType.String || type == EntryType.Binary)
                 {
                     var bin = data.Skip(offset + 0x10 + 8).Take(size).ToArray();
                     Entries.Add(new Entry(i, regId, type, size, offset + 0x10 + 8, (uint)offset, category, bin));

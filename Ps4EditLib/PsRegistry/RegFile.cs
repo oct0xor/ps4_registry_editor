@@ -17,11 +17,11 @@ namespace Ps4EditLib.PsRegistry
 
         public static RegFile Open(byte[] data)
         {
-            var file = PsRegistry.RegFiles.Find(x => x.Size == data.Length);
+            var file = Preferences.RegFiles.Find(x => x.Size == data.Length);
 
             if (file == null && BitConverter.ToUInt32(data, 4) == 0x2A2A2A2A)
             {
-                file = PsRegistry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
+                file = Preferences.RegFiles.Find(x => x.Storage == "regdatahdd.db");
             }
 
             return file;

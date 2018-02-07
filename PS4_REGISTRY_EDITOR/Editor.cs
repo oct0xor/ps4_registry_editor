@@ -72,11 +72,11 @@ namespace PS4_REGISTRY_EDITOR
                         {
                             _data = File.ReadAllBytes(fileDialog.FileName);
 
-                            file = PsRegistry.RegFiles.Find(x => x.Size == _data.Length);
+                            file = Preferences.RegFiles.Find(x => x.Size == _data.Length);
 
                             if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
                             {
-                                file = PsRegistry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
+                                file = Preferences.RegFiles.Find(x => x.Storage == "regdatahdd.db");
                             }
 
                             if (file == null || file.Storage != "regdatahdd.db")
@@ -100,7 +100,7 @@ namespace PS4_REGISTRY_EDITOR
                         {
                             var idx = File.ReadAllBytes(fileDialog.FileName);
 
-                            file = PsRegistry.RegFiles.Find(x => x.Size == idx.Length);
+                            file = Preferences.RegFiles.Find(x => x.Size == idx.Length);
 
                             if (file == null || file.Storage != "regcont.db")
                             {
@@ -141,43 +141,56 @@ namespace PS4_REGISTRY_EDITOR
 
             if (_registry.ObfuscatedContainer)
             {
-                if (entry.Type == PsRegistry.Integer)
+                switch (entry.Type)
                 {
-                    Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
-                }
-                else if (entry.Type == PsRegistry.String || entry.Type == PsRegistry.Binary)
-                {
-                    Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
+                    case EntryType.Integer:
+                        Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
+                        break;
+
+                    case EntryType.String:
+                    case EntryType.Binary:
+                        Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
+                        break;
                 }
             }
 
-            if (entry.Type == PsRegistry.Integer)
+            if (entry.Type == EntryType.Integer)
             {
                 dataTextBox.Text = BitConverter.ToUInt32(_data, entry.Offset).ToString();
                 typeLabel.Text = "INTEGER";
             }
-            else if (entry.Type == PsRegistry.String)
+            else if (entry.Type == EntryType.String)
             {
                 dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
                 typeLabel.Text = "STRING";
             }
-            else if (entry.Type == PsRegistry.Binary)
+            else if (entry.Type == EntryType.Binary)
             {
                 dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
                 typeLabel.Text = "BINARY";
             }
 
-            dataLabel.Text = ByteUtilities.HexDump(_data.Skip(entry.Offset).Take(entry.Size).ToArray());
+            dataLabel.Text = _data
+                                .Skip(entry.Offset)
+                                .Take(entry.Size)
+                                .ToArray()
+                                .HexDump();
 
             if (_registry.ObfuscatedContainer)
             {
-                if (entry.Type == PsRegistry.Integer)
+                switch (entry.Type)
                 {
-                    Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
-                }
-                else if (entry.Type == PsRegistry.String || entry.Type == PsRegistry.Binary)
-                {
-                    Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
+                    case EntryType.Integer:
+                        Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
+                        break;
+
+                    case EntryType.String:
+                    case EntryType.Binary:
+                        Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
+                        break;
+
+                    default:
+                        break;
                 }
             }
 
@@ -195,7 +208,7 @@ namespace PS4_REGISTRY_EDITOR
 
             dataTextBox.Text = dataTextBox.Text.Replace(" ", string.Empty);
 
-            if (entry.Type == PsRegistry.Integer)
+            if (entry.Type == EntryType.Integer)
             {
                 if (_registry.ObfuscatedContainer)
                 {
@@ -218,7 +231,7 @@ namespace PS4_REGISTRY_EDITOR
 
                 applyButton.Enabled = false;
             }
-            else if (entry.Type == PsRegistry.String || entry.Type == PsRegistry.Binary)
+            else if (entry.Type == EntryType.String || entry.Type == EntryType.Binary)
             {
                 if (dataTextBox.Text.Length % 2 == 0 && dataTextBox.Text.Length / 2 == entry.Size)
                 {
@@ -258,11 +271,11 @@ namespace PS4_REGISTRY_EDITOR
             if (_data == null)
                 return;
 
-            var file = PsRegistry.RegFiles.Find(x => x.Size == _data.Length);
+            var file = Preferences.RegFiles.Find(x => x.Size == _data.Length);
 
             if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
             {
-                file = PsRegistry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
+                file = Preferences.RegFiles.Find(x => x.Storage == "regdatahdd.db");
             }
 
             if (file == null)

@@ -4,14 +4,14 @@
     {
         public int I;
         public uint RegId;
-        public ushort Type;
+        public EntryType Type;
         public ushort Size;
         public int Offset;
         public uint Value;
         public byte[] Data;
         public string Category;
 
-        public Entry(int i, uint regId, ushort type, ushort size, int offset, uint value, string category)
+        public Entry(int i, uint regId, EntryType type, ushort size, int offset, uint value, string category)
         {
             this.I = i;
             this.RegId = regId;
@@ -23,7 +23,7 @@
             this.Category = category;
         }
 
-        public Entry(int i, uint regId, ushort type, ushort size, int offset, uint value, string category, byte[] data)
+        public Entry(int i, uint regId, EntryType type, ushort size, int offset, uint value, string category, byte[] data)
         {
             this.I = i;
             this.RegId = regId;

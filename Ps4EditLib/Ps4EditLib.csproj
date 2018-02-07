@@ -54,6 +54,7 @@
     <Compile Include="PsRegistry\RegInfo.cs" />
     <Compile Include="Reader\EntityReader.cs" />
     <Compile Include="Reader\Entry.cs" />
+    <Compile Include="Reader\EntryType.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
