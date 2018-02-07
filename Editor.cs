@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 
@@ -13,8 +7,8 @@ namespace PS4_REGISTRY_EDITOR
 {
     public partial class Editor : Form
     {
-        byte[] data;
-        Reader registry;
+        private byte[] _data;
+        private Reader _registry;
 
         public Editor()
         {
@@ -32,21 +26,17 @@ namespace PS4_REGISTRY_EDITOR
 
         private void OpenFileButton_Click(object sender, EventArgs e)
         {
-            OpenFileDialog fileDialog = new OpenFileDialog();
-
-            fileDialog.Filter = "|*.*||system.idx;system.dat;system.eap;system.rec";
-            fileDialog.RestoreDirectory = true;
+            var fileDialog = new OpenFileDialog
+            {
+                Filter = @"|*.*||system.idx;system.dat;system.eap;system.rec",
+                RestoreDirectory = true
+            };
 
             if (fileDialog.ShowDialog() == DialogResult.OK)
             {
-                data = File.ReadAllBytes(fileDialog.FileName);
+                _data = File.ReadAllBytes(fileDialog.FileName);
 
-                RegFile file = Registry.regFiles.Find(x => x.size == data.Length);
-
-                if (file == null && BitConverter.ToUInt32(data, 4) == 0x2A2A2A2A)
-                {
-                    file = Registry.regFiles.Find(x => x.storage == "regdatahdd.db");
-                }
+                var file = RegFile.Open(_data);
 
                 if (file == null)
                 {
@@ -54,82 +44,76 @@ namespace PS4_REGISTRY_EDITOR
                     return;
                 }
 
-                if (file.storage == "regcont_eap.db")
+                if (file.Storage == "regcont_eap.db")
                 {
-                    registry = new Reader();
-                    registry.ObfuscatedContainerReader(data, false);
+                    _registry = new Reader(_data, false);
                 }
-                else if (file.storage == "regi.recover")
+                else if (file.Storage == "regi.recover")
                 {
-                    registry = new Reader();
-                    registry.ObfuscatedContainerReader(data, true);
+                    _registry = new Reader(_data, true);
                 }
-                else if (file.storage == "regcont.db")
+                else if (file.Storage == "regcont.db")
                 {
-                    byte[] idx = data;
+                    var idx = _data;
 
-                    fileDialog = new OpenFileDialog();
-
-                    fileDialog.Filter = "|system.dat||*.*";
-                    fileDialog.RestoreDirectory = true;
+                    fileDialog = new OpenFileDialog
+                    {
+                        Filter = @"|system.dat||*.*",
+                        RestoreDirectory = true
+                    };
 
                     if (fileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        data = File.ReadAllBytes(fileDialog.FileName);
+                        _data = File.ReadAllBytes(fileDialog.FileName);
 
-                        file = Registry.regFiles.Find(x => x.size == data.Length);
+                        file = Registry.RegFiles.Find(x => x.Size == _data.Length);
 
-                        if (file == null && BitConverter.ToUInt32(data, 4) == 0x2A2A2A2A)
+                        if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
                         {
-                            file = Registry.regFiles.Find(x => x.storage == "regdatahdd.db");
+                            file = Registry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
                         }
 
-                        if (file == null || file.storage != "regdatahdd.db")
+                        if (file == null || file.Storage != "regdatahdd.db")
                         {
-                            MessageBox.Show("Invalid system.dat !");
+                            MessageBox.Show(@"Invalid system.dat !");
                             return;
                         }
 
-                        registry = new Reader();
-                        registry.DataContainerReader(data, idx);
+                        _registry = new Reader(_data, idx);
                     }
                 }
-                else if (file.storage == "regdatahdd.db")
+                else if (file.Storage == "regdatahdd.db")
                 {
-                    fileDialog = new OpenFileDialog();
-
-                    fileDialog.Filter = "|system.idx||*.*";
-                    fileDialog.RestoreDirectory = true;
+                    fileDialog = new OpenFileDialog
+                    {
+                        Filter = @"|system.idx||*.*",
+                        RestoreDirectory = true
+                    };
 
                     if (fileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        byte[] idx = File.ReadAllBytes(fileDialog.FileName);
+                        var idx = File.ReadAllBytes(fileDialog.FileName);
 
-                        file = Registry.regFiles.Find(x => x.size == idx.Length);
+                        file = Registry.RegFiles.Find(x => x.Size == idx.Length);
 
-                        if (file == null || file.storage != "regcont.db")
+                        if (file == null || file.Storage != "regcont.db")
                         {
-                            MessageBox.Show("Invalid system.idx !");
+                            MessageBox.Show(@"Invalid system.idx !");
                             return;
                         }
 
-                        registry = new Reader();
-                        registry.DataContainerReader(data, idx);
+                        _registry = new Reader(_data, idx);
                     }
                 }
 
                 listView.Clear();
 
-                ColumnHeader header = new ColumnHeader();
-                header.Width = listView.Width;
+                var header = new ColumnHeader { Width = listView.Width };
                 listView.Columns.Add(header);
                 listView.View = View.Details;
                 listView.HeaderStyle = ColumnHeaderStyle.None;
 
-                foreach (var entry in registry.entries)
-                {
-                    listView.Items.Add(entry.category);
-                }
+                _registry.Entries.ForEach(x => listView.Items.Add(x.Category));
             }
         }
 
@@ -140,7 +124,7 @@ namespace PS4_REGISTRY_EDITOR
 
             var selected = listView.SelectedIndices[0];
 
-            Entry entry = registry.entries[selected];
+            var entry = _registry.Entries[selected];
 
             typeLabel.Show();
             dataTextBox.Show();
@@ -148,45 +132,45 @@ namespace PS4_REGISTRY_EDITOR
             saveButton.Show();
             applyButton.Show();
 
-            if (registry.obfuscatedContainer)
+            if (_registry.ObfuscatedContainer)
             {
-                if (entry.type == Registry.INTEGER)
+                if (entry.Type == Registry.Integer)
                 {
-                    Crypto.XorData(data, 0x20 + entry.i * 0x10, 0x10);
+                    Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
-                else if (entry.type == Registry.STRING || entry.type == Registry.BINARY)
+                else if (entry.Type == Registry.String || entry.Type == Registry.Binary)
                 {
-                    Crypto.XorData(data, entry.offset - 4, entry.size + 4);
+                    Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                 }
             }
 
-            if (entry.type == Registry.INTEGER)
+            if (entry.Type == Registry.Integer)
             {
-                dataTextBox.Text = BitConverter.ToUInt32(data, entry.offset).ToString();
+                dataTextBox.Text = BitConverter.ToUInt32(_data, entry.Offset).ToString();
                 typeLabel.Text = "INTEGER";
             }
-            else if (entry.type == Registry.STRING)
+            else if (entry.Type == Registry.String)
             {
-                dataTextBox.Text = Utils.ByteArrayToString(data.Skip(entry.offset).Take(entry.size).ToArray());
+                dataTextBox.Text = Utils.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
                 typeLabel.Text = "STRING";
             }
-            else if (entry.type == Registry.BINARY)
+            else if (entry.Type == Registry.Binary)
             {
-                dataTextBox.Text = Utils.ByteArrayToString(data.Skip(entry.offset).Take(entry.size).ToArray());
+                dataTextBox.Text = Utils.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
                 typeLabel.Text = "BINARY";
             }
 
-            dataLabel.Text = Utils.HexDump(data.Skip(entry.offset).Take(entry.size).ToArray());
+            dataLabel.Text = Utils.HexDump(_data.Skip(entry.Offset).Take(entry.Size).ToArray());
 
-            if (registry.obfuscatedContainer)
+            if (_registry.ObfuscatedContainer)
             {
-                if (entry.type == Registry.INTEGER)
+                if (entry.Type == Registry.Integer)
                 {
-                    Crypto.XorData(data, 0x20 + entry.i * 0x10, 0x10);
+                    Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
-                else if (entry.type == Registry.STRING || entry.type == Registry.BINARY)
+                else if (entry.Type == Registry.String || entry.Type == Registry.Binary)
                 {
-                    Crypto.XorData(data, entry.offset - 4, entry.size + 4);
+                    Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                 }
             }
 
@@ -195,96 +179,101 @@ namespace PS4_REGISTRY_EDITOR
 
         private void applyButton_Click(object sender, EventArgs e)
         {
-            if (listView.SelectedIndices.Count == 0 && data != null)
+            if (listView.SelectedIndices.Count == 0 && _data != null)
                 return;
 
             var selected = listView.SelectedIndices[0];
 
-            Entry entry = registry.entries[selected];
+            var entry = _registry.Entries[selected];
 
             dataTextBox.Text = dataTextBox.Text.Replace(" ", string.Empty);
 
-            if (entry.type == Registry.INTEGER)
+            if (entry.Type == Registry.Integer)
             {
-                if (registry.obfuscatedContainer)
+                if (_registry.ObfuscatedContainer)
                 {
-                    Crypto.XorData(data, 0x20 + entry.i * 0x10, 0x10);
+                    Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
 
-                uint value = Convert.ToUInt32(dataTextBox.Text);
-                Utils.Store32(data, entry.offset, value);
+                var value = Convert.ToUInt32(dataTextBox.Text);
+                Utils.Store32(_data, entry.Offset, value);
 
-                if (registry.obfuscatedContainer)
+                if (_registry.ObfuscatedContainer)
                 {
-                    byte[] newEntry = data.Skip(0x20 + entry.i * 0x10).Take(0x10).ToArray();
+                    var newEntry = _data.Skip(0x20 + entry.I * 0x10).Take(0x10).ToArray();
                     Utils.Store16(newEntry, 0xA, 0);
-                    ushort entryHash = Utils.Swap16((ushort)Crypto.CalcHash(newEntry, newEntry.Length, 2));
-                    Utils.Store16(data, 0x20 + entry.i * 0x10 + 0xA, entryHash);
+                    var entryHash = Utils.Swap16((ushort)Crypto.CalcHash(newEntry, newEntry.Length, 2));
+                    Utils.Store16(_data, 0x20 + entry.I * 0x10 + 0xA, entryHash);
 
-                    Crypto.XorData(data, 0x20 + entry.i * 0x10, 0x10);
+                    Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
 
                 applyButton.Enabled = false;
             }
-            else if (entry.type == Registry.STRING || entry.type == Registry.BINARY)
+            else if (entry.Type == Registry.String || entry.Type == Registry.Binary)
             {
-                if (dataTextBox.Text.Length % 2 == 0 && dataTextBox.Text.Length / 2 == entry.size)
+                if (dataTextBox.Text.Length % 2 == 0 && dataTextBox.Text.Length / 2 == entry.Size)
                 {
-                    byte[] patched = Utils.StringToByteArray(dataTextBox.Text);
+                    var patched = Utils.StringToByteArray(dataTextBox.Text);
 
-                    if (registry.obfuscatedContainer)
+                    if (_registry.ObfuscatedContainer)
                     {
-                        Crypto.XorData(data, entry.offset - 4, entry.size + 4);
+                        Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                     }
 
-                    for (int i = 0; i < patched.Length; i++)
+                    for (var i = 0; i < patched.Length; i++)
                     {
-                        data[entry.offset + i] = patched[i];
+                        _data[entry.Offset + i] = patched[i];
                     }
 
-                    if (registry.obfuscatedContainer)
+                    if (_registry.ObfuscatedContainer)
                     {
-                        byte[] bin = data.Skip(entry.offset).Take(entry.size).ToArray();
-                        uint binHash2 = Utils.Swap32((uint)Crypto.CalcHash(bin, bin.Length, 4));
-                        Utils.Store32(data, entry.offset - 4, binHash2);
+                        var bin = _data.Skip(entry.Offset).Take(entry.Size).ToArray();
+                        var binHash2 = Utils.Swap32((uint)Crypto.CalcHash(bin, bin.Length, 4));
+                        Utils.Store32(_data, entry.Offset - 4, binHash2);
 
-                        Crypto.XorData(data, entry.offset - 4, entry.size + 4);
+                        Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                     }
 
                     applyButton.Enabled = false;
                 }
                 else
                 {
-                    MessageBox.Show("Wrong data size!");
+                    MessageBox.Show(@"Wrong data size!");
                 }
             }
         }
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            if (data == null)
+            if (_data == null)
                 return;
 
-            RegFile file = Registry.regFiles.Find(x => x.size == data.Length);
+            var file = Registry.RegFiles.Find(x => x.Size == _data.Length);
 
-            if (file == null && BitConverter.ToUInt32(data, 4) == 0x2A2A2A2A)
+            if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
             {
-                file = Registry.regFiles.Find(x => x.storage == "regdatahdd.db");
+                file = Registry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
             }
 
-            SaveFileDialog fileDialog = new SaveFileDialog();
+            if (file == null)
+            {
+                MessageBox.Show(@"Error saving file!");
+                return;
+            }
 
-            fileDialog.Filter = "All files (*.*)|*.*";
-
-            fileDialog.FileName = file.file.Split('/')[3];
-
-            fileDialog.RestoreDirectory = true;
+            var fileDialog = new SaveFileDialog
+            {
+                Filter = @"All files (*.*)|*.*",
+                FileName = file.File.Split('/')[3],
+                RestoreDirectory = true
+            };
 
             if (fileDialog.ShowDialog() == DialogResult.OK)
             {
-                using (BinaryWriter writer = new BinaryWriter(File.Open(fileDialog.FileName, FileMode.Create)))
+                using (var fs = File.Open(fileDialog.FileName, FileMode.Create))
                 {
-                    writer.Write(data);
+                    fs.Write(_data, 0, _data.Length);
                 }
             }
         }

@@ -1,88 +1,93 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace PS4_REGISTRY_EDITOR
 {
-    class Entry
+    internal class Entry
     {
-        public int i;
-        public uint regId;
-        public ushort type;
-        public ushort size;
-        public int offset;
-        public uint value;
-        public byte[] data;
-        public string category;
+        public int I;
+        public uint RegId;
+        public ushort Type;
+        public ushort Size;
+        public int Offset;
+        public uint Value;
+        public byte[] Data;
+        public string Category;
 
         public Entry(int i, uint regId, ushort type, ushort size, int offset, uint value, string category)
         {
-            this.i = i;
-            this.regId = regId;
-            this.type = type;
-            this.size = size;
-            this.offset = offset;
-            this.value = value;
-            this.data = null;
-            this.category = category;
+            this.I = i;
+            this.RegId = regId;
+            this.Type = type;
+            this.Size = size;
+            this.Offset = offset;
+            this.Value = value;
+            this.Data = null;
+            this.Category = category;
         }
 
         public Entry(int i, uint regId, ushort type, ushort size, int offset, uint value, string category, byte[] data)
         {
-            this.i = i;
-            this.regId = regId;
-            this.type = type;
-            this.size = size;
-            this.offset = offset;
-            this.value = value;
-            this.data = data;
-            this.category = category;
+            this.I = i;
+            this.RegId = regId;
+            this.Type = type;
+            this.Size = size;
+            this.Offset = offset;
+            this.Value = value;
+            this.Data = data;
+            this.Category = category;
         }
     }
 
-    class Reader
+    internal class Reader
     {
-        public bool obfuscatedContainer = false;
-        public List<Entry> entries = new List<Entry>();
+        public readonly List<Entry> Entries = new List<Entry>();
+        public bool ObfuscatedContainer { get; private set; }
+
+        public Reader(byte[] data, byte[] idx)
+        {
+            if (!DataContainerReader(data, idx))
+            {
+                throw new Exception("Invalid arguments");
+            }
+        }
+
+        public Reader(byte[] data, bool backup)
+        {
+            if (!ObfuscatedContainerReader(data, backup))
+            {
+                throw new Exception("Invalid arguments");
+            }
+        }
 
         private string GetCategory(uint regId)
         {
-            RegInfo info = Registry.regTable.Find(x => x.regId == regId);
-
-            string category;
-            if (info == null)
-            {
-                category = String.Format("Unknown 0x{0:X8}", regId);
-            }
-            else
-            {
-                category = info.path;
-            }
+            var info = Registry.RegTable.Find(x => x.RegId == regId);
+            var category = info == null ? $"Unknown 0x{regId:X8}" : info.Path;
 
             return category;
         }
 
-        public bool ObfuscatedContainerReader(byte[] data, bool backup)
+        private bool ObfuscatedContainerReader(byte[] data, bool backup)
         {
-            obfuscatedContainer = true;
+            ObfuscatedContainer = true;
 
             Crypto.XorData(data, 0, 0x20);
 
-            uint version = BitConverter.ToUInt32(data, 0);
-            ushort entriesCount = BitConverter.ToUInt16(data, 4);
-            ushort entriesCount2 = BitConverter.ToUInt16(data, 6);
-            uint binarySize = BitConverter.ToUInt32(data, 8);
+            var version = BitConverter.ToUInt32(data, 0);
+            var entriesCount = BitConverter.ToUInt16(data, 4);
+            var entriesCount2 = BitConverter.ToUInt16(data, 6);
+            var binarySize = BitConverter.ToUInt32(data, 8);
 
-            uint hdrHash = BitConverter.ToUInt32(data, 0xC);
+            var hdrHash = BitConverter.ToUInt32(data, 0xC);
 
-            byte[] hdr = data.Take(0x20).ToArray();
+            var hdr = data.Take(0x20).ToArray();
 
             Utils.Store32(hdr, 0xC, 0);
 
-            uint hdrHash2 = Utils.Swap32((uint)Crypto.CalcHash(hdr, hdr.Length, 4));
+            var hdrHash2 = Utils.Swap32((uint)Crypto.CalcHash(hdr, hdr.Length, 4));
 
             Crypto.XorData(data, 0, 0x20);
 
@@ -92,20 +97,20 @@ namespace PS4_REGISTRY_EDITOR
                 return false;
             }
 
-            for (int i = 0; i < entriesCount; i++)
+            for (var i = 0; i < entriesCount; i++)
             {
                 Crypto.XorData(data, 0x20 + i * 0x10, 0x10);
 
-                uint regIdEnc1 = BitConverter.ToUInt32(data, 0x20 + i * 0x10);
-                ushort type = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 4);
-                ushort size = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 6);
-                ushort regIdEnc2 = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 8);
-                ushort entryHash = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 0xA);
-                uint value = BitConverter.ToUInt32(data, 0x20 + i * 0x10 + 0xC);
+                var regIdEnc1 = BitConverter.ToUInt32(data, 0x20 + i * 0x10);
+                var type = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 4);
+                var size = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 6);
+                var regIdEnc2 = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 8);
+                var entryHash = BitConverter.ToUInt16(data, 0x20 + i * 0x10 + 0xA);
+                var value = BitConverter.ToUInt32(data, 0x20 + i * 0x10 + 0xC);
 
-                byte[] entry = data.Skip(0x20 + i * 0x10).Take(0x10).ToArray();
+                var entry = data.Skip(0x20 + i * 0x10).Take(0x10).ToArray();
                 Utils.Store16(entry, 0xA, 0);
-                ushort entryHash2 = Utils.Swap16((ushort)Crypto.CalcHash(entry, entry.Length, 2));
+                var entryHash2 = Utils.Swap16((ushort)Crypto.CalcHash(entry, entry.Length, 2));
 
                 if (entryHash != entryHash2)
                 {
@@ -124,22 +129,22 @@ namespace PS4_REGISTRY_EDITOR
                     Crypto.DecryptRegId(Crypto.RegMgrEapRegIdKey, regIdEnc1, regIdEnc2, out regId);
                 }
 
-                string category = GetCategory(regId);
+                var category = GetCategory(regId);
 
-                if (type == Registry.INTEGER)
+                if (type == Registry.Integer)
                 {
-                    byte[] bin = data.Skip((int)(0x20 + i * 0x10 + 0xC)).Take(size).ToArray();
-                    entries.Add(new Entry(i, regId, type, size, 0x20 + i * 0x10 + 0xC, value, category, bin));
+                    var bin = data.Skip((int)(0x20 + i * 0x10 + 0xC)).Take(size).ToArray();
+                    Entries.Add(new Entry(i, regId, type, size, 0x20 + i * 0x10 + 0xC, value, category, bin));
                 }
-                else if (type == Registry.STRING || type == Registry.BINARY)
+                else if (type == Registry.String || type == Registry.Binary)
                 {
                     Crypto.XorData(data, (int)(0x20 + entriesCount * 0x10 + value), size + 4);
 
-                    uint binHash = BitConverter.ToUInt32(data, (int)(0x20 + entriesCount * 0x10 + value));
+                    var binHash = BitConverter.ToUInt32(data, (int)(0x20 + entriesCount * 0x10 + value));
 
-                    byte[] bin = data.Skip((int)(0x20 + entriesCount * 0x10 + value + 4)).Take(size).ToArray();
+                    var bin = data.Skip((int)(0x20 + entriesCount * 0x10 + value + 4)).Take(size).ToArray();
 
-                    uint binHash2 = Utils.Swap32((uint)Crypto.CalcHash(bin, bin.Length, 4));
+                    var binHash2 = Utils.Swap32((uint)Crypto.CalcHash(bin, bin.Length, 4));
 
                     if (binHash != binHash2)
                     {
@@ -147,7 +152,7 @@ namespace PS4_REGISTRY_EDITOR
                         return false;
                     }
 
-                    entries.Add(new Entry(i, regId, type, size, (int)(0x20 + entriesCount * 0x10 + value + 4), value, category, bin));
+                    Entries.Add(new Entry(i, regId, type, size, (int)(0x20 + entriesCount * 0x10 + value + 4), value, category, bin));
 
                     Crypto.XorData(data, (int)(0x20 + entriesCount * 0x10 + value), size + 4);
                 }
@@ -158,9 +163,9 @@ namespace PS4_REGISTRY_EDITOR
             return true;
         }
 
-        public bool DataContainerReader(byte[] data, byte[] idx)
+        private bool DataContainerReader(byte[] data, byte[] idx)
         {
-            uint version = BitConverter.ToUInt32(idx, 0);
+            var version = BitConverter.ToUInt32(idx, 0);
 
             if (version > 0x999999)
             {
@@ -168,7 +173,7 @@ namespace PS4_REGISTRY_EDITOR
                 return false;
             }
 
-            byte magic = data[4];
+            var magic = data[4];
 
             if (magic != 0x2A)
             {
@@ -176,19 +181,19 @@ namespace PS4_REGISTRY_EDITOR
                 return false;
             }
 
-            ushort entriesCount = BitConverter.ToUInt16(idx, 4);
-            ushort updateCount = BitConverter.ToUInt16(idx, 6);
+            var entriesCount = BitConverter.ToUInt16(idx, 4);
+            var updateCount = BitConverter.ToUInt16(idx, 6);
 
-            for (int i = 0; i < entriesCount; i++)
+            for (var i = 0; i < entriesCount; i++)
             {
-                uint regId = BitConverter.ToUInt32(idx, 0x24 + i * 0x10);
-                ushort size = BitConverter.ToUInt16(idx, 0x24 + i * 0x10 + 4);
-                byte type = idx[0x24 + i * 0x10 + 6];
-                byte flag = idx[0x24 + i * 0x10 + 7];
-                int offset = BitConverter.ToInt32(idx, 0x24 + i * 0x10 + 8);
+                var regId = BitConverter.ToUInt32(idx, 0x24 + i * 0x10);
+                var size = BitConverter.ToUInt16(idx, 0x24 + i * 0x10 + 4);
+                var type = idx[0x24 + i * 0x10 + 6];
+                var flag = idx[0x24 + i * 0x10 + 7];
+                var offset = BitConverter.ToInt32(idx, 0x24 + i * 0x10 + 8);
 
-                uint regId2 = BitConverter.ToUInt32(data, offset + 0x10);
-                ushort size2 = BitConverter.ToUInt16(data, offset + 0x10 + 4);
+                var regId2 = BitConverter.ToUInt32(data, offset + 0x10);
+                var size2 = BitConverter.ToUInt16(data, offset + 0x10 + 4);
 
                 if (flag != 0)
                 {
@@ -208,18 +213,18 @@ namespace PS4_REGISTRY_EDITOR
                     return false;
                 }
 
-                string category = GetCategory(regId);
+                var category = GetCategory(regId);
 
-                if (type == Registry.INTEGER)
+                if (type == Registry.Integer)
                 {
-                    uint value = BitConverter.ToUInt32(data, offset + 0x10 + 8);
-                    byte[] bin = data.Skip(offset + 0x10 + 8).Take(size).ToArray();
-                    entries.Add(new Entry(i, regId, type, size, offset + 0x10 + 8, value, category, bin));
+                    var value = BitConverter.ToUInt32(data, offset + 0x10 + 8);
+                    var bin = data.Skip(offset + 0x10 + 8).Take(size).ToArray();
+                    Entries.Add(new Entry(i, regId, type, size, offset + 0x10 + 8, value, category, bin));
                 }
-                else if (type == Registry.STRING || type == Registry.BINARY)
+                else if (type == Registry.String || type == Registry.Binary)
                 {
-                    byte[] bin = data.Skip(offset + 0x10 + 8).Take(size).ToArray();
-                    entries.Add(new Entry(i, regId, type, size, offset + 0x10 + 8, (uint)offset, category, bin));
+                    var bin = data.Skip(offset + 0x10 + 8).Take(size).ToArray();
+                    Entries.Add(new Entry(i, regId, type, size, offset + 0x10 + 8, (uint)offset, category, bin));
                 }
             }
 
