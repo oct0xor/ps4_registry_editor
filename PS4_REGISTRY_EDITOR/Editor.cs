@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 using System.IO;
@@ -9,10 +10,14 @@ using Ps4EditLib.Reader;
 
 namespace PS4_REGISTRY_EDITOR
 {
+    /// <summary>
+    /// TODO!!!
+    /// Too much responsibility, restruct needed
+    /// </summary>
     public partial class Editor : Form
     {
         private byte[] _data;
-        private EntityReader _registry;
+        private IEntityReader _registry;
 
         public Editor()
         {
@@ -28,6 +33,11 @@ namespace PS4_REGISTRY_EDITOR
             applyButton.Hide();
         }
 
+        /// <summary>
+        /// TODO: Method too long, unify and outsource some code
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void OpenFileButton_Click(object sender, EventArgs e)
         {
             var fileDialog = new OpenFileDialog
@@ -50,11 +60,11 @@ namespace PS4_REGISTRY_EDITOR
 
                 if (file.Storage == "regcont_eap.db")
                 {
-                    _registry = new EntityReader(_data, false);
+                    _registry = new ObfuscatedContainerReader(_data, false);
                 }
                 else if (file.Storage == "regi.recover")
                 {
-                    _registry = new EntityReader(_data, true);
+                    _registry = new ObfuscatedContainerReader(_data, true);
                 }
                 else
                 {
@@ -72,12 +82,7 @@ namespace PS4_REGISTRY_EDITOR
                         {
                             _data = File.ReadAllBytes(fileDialog.FileName);
 
-                            file = Preferences.RegFiles.Find(x => x.Size == _data.Length);
-
-                            if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
-                            {
-                                file = Preferences.RegFiles.Find(x => x.Storage == "regdatahdd.db");
-                            }
+                            file = RegFile.Open(_data);
 
                             if (file == null || file.Storage != "regdatahdd.db")
                             {
@@ -85,7 +90,7 @@ namespace PS4_REGISTRY_EDITOR
                                 return;
                             }
 
-                            _registry = new EntityReader(_data, idx);
+                            _registry = new DataContainerReader(_data, idx);
                         }
                     }
                     else if (file.Storage == "regdatahdd.db")
@@ -108,7 +113,7 @@ namespace PS4_REGISTRY_EDITOR
                                 return;
                             }
 
-                            _registry = new EntityReader(_data, idx);
+                            _registry = new DataContainerReader(_data, idx);
                         }
                     }
                 }
@@ -157,18 +162,17 @@ namespace PS4_REGISTRY_EDITOR
             if (entry.Type == EntryType.Integer)
             {
                 dataTextBox.Text = BitConverter.ToUInt32(_data, entry.Offset).ToString();
-                typeLabel.Text = "INTEGER";
             }
             else if (entry.Type == EntryType.String)
             {
                 dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
-                typeLabel.Text = "STRING";
             }
             else if (entry.Type == EntryType.Binary)
             {
                 dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
-                typeLabel.Text = "BINARY";
             }
+
+            typeLabel.Text = entry.Type.ToString();
 
             dataLabel.Text = _data
                                 .Skip(entry.Offset)
@@ -197,6 +201,11 @@ namespace PS4_REGISTRY_EDITOR
             applyButton.Enabled = false;
         }
 
+        /// <summary>
+        /// TODO: Method too long, unify and outsource some code
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void applyButton_Click(object sender, EventArgs e)
         {
             if (listView.SelectedIndices.Count == 0 && _data != null)
@@ -220,6 +229,7 @@ namespace PS4_REGISTRY_EDITOR
 
                 if (_registry.ObfuscatedContainer)
                 {
+                    // ReSharper disable once AssignNullToNotNullAttribute
                     var newEntry = _data.Skip(0x20 + entry.I * 0x10).Take(0x10).ToArray();
                     newEntry.Store16(0xA, 0);
                     var entryHash = Crypto.CalcHash(newEntry, newEntry.Length, 2).Swap16();
@@ -271,12 +281,7 @@ namespace PS4_REGISTRY_EDITOR
             if (_data == null)
                 return;
 
-            var file = Preferences.RegFiles.Find(x => x.Size == _data.Length);
-
-            if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
-            {
-                file = Preferences.RegFiles.Find(x => x.Storage == "regdatahdd.db");
-            }
+            var file = RegFile.Open(_data);
 
             if (file == null)
             {
