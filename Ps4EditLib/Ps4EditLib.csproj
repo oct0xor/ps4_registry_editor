@@ -42,7 +42,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ByteUtilities.cs" />
     <Compile Include="Crypto.cs" />
     <Compile Include="Exceptions\InequalityException.cs" />
     <Compile Include="Exceptions\InvalidArgumentException.cs" />

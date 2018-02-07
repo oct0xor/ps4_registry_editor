@@ -165,11 +165,11 @@ namespace PS4_REGISTRY_EDITOR
             }
             else if (entry.Type == EntryType.String)
             {
-                dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
+                dataTextBox.Text = _data.Skip(entry.Offset).Take(entry.Size).ToHexString();
             }
             else if (entry.Type == EntryType.Binary)
             {
-                dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
+                dataTextBox.Text = _data.Skip(entry.Offset).Take(entry.Size).ToHexString();
             }
 
             typeLabel.Text = entry.Type.ToString();
@@ -245,7 +245,7 @@ namespace PS4_REGISTRY_EDITOR
             {
                 if (dataTextBox.Text.Length % 2 == 0 && dataTextBox.Text.Length / 2 == entry.Size)
                 {
-                    var patched = ByteUtilities.StringToByteArray(dataTextBox.Text);
+                    var patched = dataTextBox.Text.ToByteArray();
 
                     if (_registry.ObfuscatedContainer)
                     {

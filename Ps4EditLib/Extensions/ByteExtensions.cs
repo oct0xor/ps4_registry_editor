@@ -100,5 +100,19 @@ namespace Ps4EditLib.Extensions
             }
             return result.ToString();
         }
+
+        public static byte[] ToByteArray(this string hex)
+        {
+            var numberChars = hex.Length;
+            var bytes = new byte[numberChars / 2];
+            for (var i = 0; i < numberChars; i += 2)
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            return bytes;
+        }
+
+        public static string ToHexString(this IEnumerable<byte> ba)
+        {
+            return String.Concat(ba.Select(x => x.ToString("x2")));
+        }
     }
 }
