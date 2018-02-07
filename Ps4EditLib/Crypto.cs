@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Numerics;
+using System.Security.Cryptography.X509Certificates;
 
-namespace PS4_REGISTRY_EDITOR
+namespace Ps4EditLib
 {
-    internal static class Crypto
+    public static class Crypto
     {
         public static byte[] RegMgrBackupRegIdKey = {
             0x1F, 0x26, 0xFD, 0x8D, 0xBF, 0x0A, 0x8D, 0x92, 0x7F, 0x6B, 0xA0, 0x12, 0xB4, 0x0E, 0x8F, 0xB1

@@ -2,38 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace PS4_REGISTRY_EDITOR
+namespace Ps4EditLib
 {
-    internal static class Utils
+    public static class ByteUtilities
     {
-        public static ushort Swap16(ushort val)
-        {
-            return (ushort)((val << 8 & 0xFF00) |
-                (val >> 8 & 0x00FF));
-        }
-
-        public static uint Swap32(uint val)
-        {
-            return ((val << 24 & 0xFF000000) |
-                (val << 8 & 0x00FF0000) |
-                (val >> 8 & 0x0000FF00) |
-                (val >> 24 & 0x000000FF));
-        }
-
-        public static void Store16(byte[] data, int offset, uint value)
-        {
-            data[offset + 0] = (byte)value;
-            data[offset + 1] = (byte)(value >> 8);
-        }
-
-        public static void Store32(byte[] data, int offset, uint value)
-        {
-            data[offset + 0] = (byte)value;
-            data[offset + 1] = (byte)(value >> 8);
-            data[offset + 2] = (byte)(value >> 0x10);
-            data[offset + 3] = (byte)(value >> 0x18);
-        }
-
         public static string HexDump(byte[] bytes, int bytesPerLine = 16)
         {
             if (bytes == null) return "<null>";

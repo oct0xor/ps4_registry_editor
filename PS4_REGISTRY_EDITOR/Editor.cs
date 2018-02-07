@@ -2,13 +2,17 @@
 using System.Linq;
 using System.Windows.Forms;
 using System.IO;
+using Ps4EditLib;
+using Ps4EditLib.Extensions;
+using Ps4EditLib.PsRegistry;
+using Ps4EditLib.Reader;
 
 namespace PS4_REGISTRY_EDITOR
 {
     public partial class Editor : Form
     {
         private byte[] _data;
-        private Reader _registry;
+        private EntityReader _registry;
 
         public Editor()
         {
@@ -46,63 +50,66 @@ namespace PS4_REGISTRY_EDITOR
 
                 if (file.Storage == "regcont_eap.db")
                 {
-                    _registry = new Reader(_data, false);
+                    _registry = new EntityReader(_data, false);
                 }
                 else if (file.Storage == "regi.recover")
                 {
-                    _registry = new Reader(_data, true);
+                    _registry = new EntityReader(_data, true);
                 }
-                else if (file.Storage == "regcont.db")
+                else
                 {
-                    var idx = _data;
-
-                    fileDialog = new OpenFileDialog
+                    if (file.Storage == "regcont.db")
                     {
-                        Filter = @"|system.dat||*.*",
-                        RestoreDirectory = true
-                    };
+                        var idx = _data;
 
-                    if (fileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        _data = File.ReadAllBytes(fileDialog.FileName);
-
-                        file = Registry.RegFiles.Find(x => x.Size == _data.Length);
-
-                        if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
+                        fileDialog = new OpenFileDialog
                         {
-                            file = Registry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
-                        }
+                            Filter = @"|system.dat||*.*",
+                            RestoreDirectory = true
+                        };
 
-                        if (file == null || file.Storage != "regdatahdd.db")
+                        if (fileDialog.ShowDialog() == DialogResult.OK)
                         {
-                            MessageBox.Show(@"Invalid system.dat !");
-                            return;
-                        }
+                            _data = File.ReadAllBytes(fileDialog.FileName);
 
-                        _registry = new Reader(_data, idx);
+                            file = PsRegistry.RegFiles.Find(x => x.Size == _data.Length);
+
+                            if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
+                            {
+                                file = PsRegistry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
+                            }
+
+                            if (file == null || file.Storage != "regdatahdd.db")
+                            {
+                                MessageBox.Show(@"Invalid system.dat !");
+                                return;
+                            }
+
+                            _registry = new EntityReader(_data, idx);
+                        }
                     }
-                }
-                else if (file.Storage == "regdatahdd.db")
-                {
-                    fileDialog = new OpenFileDialog
+                    else if (file.Storage == "regdatahdd.db")
                     {
-                        Filter = @"|system.idx||*.*",
-                        RestoreDirectory = true
-                    };
-
-                    if (fileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        var idx = File.ReadAllBytes(fileDialog.FileName);
-
-                        file = Registry.RegFiles.Find(x => x.Size == idx.Length);
-
-                        if (file == null || file.Storage != "regcont.db")
+                        fileDialog = new OpenFileDialog
                         {
-                            MessageBox.Show(@"Invalid system.idx !");
-                            return;
-                        }
+                            Filter = @"|system.idx||*.*",
+                            RestoreDirectory = true
+                        };
 
-                        _registry = new Reader(_data, idx);
+                        if (fileDialog.ShowDialog() == DialogResult.OK)
+                        {
+                            var idx = File.ReadAllBytes(fileDialog.FileName);
+
+                            file = PsRegistry.RegFiles.Find(x => x.Size == idx.Length);
+
+                            if (file == null || file.Storage != "regcont.db")
+                            {
+                                MessageBox.Show(@"Invalid system.idx !");
+                                return;
+                            }
+
+                            _registry = new EntityReader(_data, idx);
+                        }
                     }
                 }
 
@@ -134,41 +141,41 @@ namespace PS4_REGISTRY_EDITOR
 
             if (_registry.ObfuscatedContainer)
             {
-                if (entry.Type == Registry.Integer)
+                if (entry.Type == PsRegistry.Integer)
                 {
                     Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
-                else if (entry.Type == Registry.String || entry.Type == Registry.Binary)
+                else if (entry.Type == PsRegistry.String || entry.Type == PsRegistry.Binary)
                 {
                     Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                 }
             }
 
-            if (entry.Type == Registry.Integer)
+            if (entry.Type == PsRegistry.Integer)
             {
                 dataTextBox.Text = BitConverter.ToUInt32(_data, entry.Offset).ToString();
                 typeLabel.Text = "INTEGER";
             }
-            else if (entry.Type == Registry.String)
+            else if (entry.Type == PsRegistry.String)
             {
-                dataTextBox.Text = Utils.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
+                dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
                 typeLabel.Text = "STRING";
             }
-            else if (entry.Type == Registry.Binary)
+            else if (entry.Type == PsRegistry.Binary)
             {
-                dataTextBox.Text = Utils.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
+                dataTextBox.Text = ByteUtilities.ByteArrayToString(_data.Skip(entry.Offset).Take(entry.Size));
                 typeLabel.Text = "BINARY";
             }
 
-            dataLabel.Text = Utils.HexDump(_data.Skip(entry.Offset).Take(entry.Size).ToArray());
+            dataLabel.Text = ByteUtilities.HexDump(_data.Skip(entry.Offset).Take(entry.Size).ToArray());
 
             if (_registry.ObfuscatedContainer)
             {
-                if (entry.Type == Registry.Integer)
+                if (entry.Type == PsRegistry.Integer)
                 {
                     Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
-                else if (entry.Type == Registry.String || entry.Type == Registry.Binary)
+                else if (entry.Type == PsRegistry.String || entry.Type == PsRegistry.Binary)
                 {
                     Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                 }
@@ -188,7 +195,7 @@ namespace PS4_REGISTRY_EDITOR
 
             dataTextBox.Text = dataTextBox.Text.Replace(" ", string.Empty);
 
-            if (entry.Type == Registry.Integer)
+            if (entry.Type == PsRegistry.Integer)
             {
                 if (_registry.ObfuscatedContainer)
                 {
@@ -196,25 +203,26 @@ namespace PS4_REGISTRY_EDITOR
                 }
 
                 var value = Convert.ToUInt32(dataTextBox.Text);
-                Utils.Store32(_data, entry.Offset, value);
+                _data.Store32(entry.Offset, value);
 
                 if (_registry.ObfuscatedContainer)
                 {
                     var newEntry = _data.Skip(0x20 + entry.I * 0x10).Take(0x10).ToArray();
-                    Utils.Store16(newEntry, 0xA, 0);
-                    var entryHash = Utils.Swap16((ushort)Crypto.CalcHash(newEntry, newEntry.Length, 2));
-                    Utils.Store16(_data, 0x20 + entry.I * 0x10 + 0xA, entryHash);
+                    newEntry.Store16(0xA, 0);
+                    var entryHash = Crypto.CalcHash(newEntry, newEntry.Length, 2).Swap16();
+
+                    _data.Store16(0x20 + entry.I * 0x10 + 0xA, entryHash);
 
                     Crypto.XorData(_data, 0x20 + entry.I * 0x10, 0x10);
                 }
 
                 applyButton.Enabled = false;
             }
-            else if (entry.Type == Registry.String || entry.Type == Registry.Binary)
+            else if (entry.Type == PsRegistry.String || entry.Type == PsRegistry.Binary)
             {
                 if (dataTextBox.Text.Length % 2 == 0 && dataTextBox.Text.Length / 2 == entry.Size)
                 {
-                    var patched = Utils.StringToByteArray(dataTextBox.Text);
+                    var patched = ByteUtilities.StringToByteArray(dataTextBox.Text);
 
                     if (_registry.ObfuscatedContainer)
                     {
@@ -229,8 +237,9 @@ namespace PS4_REGISTRY_EDITOR
                     if (_registry.ObfuscatedContainer)
                     {
                         var bin = _data.Skip(entry.Offset).Take(entry.Size).ToArray();
-                        var binHash2 = Utils.Swap32((uint)Crypto.CalcHash(bin, bin.Length, 4));
-                        Utils.Store32(_data, entry.Offset - 4, binHash2);
+
+                        var binHash2 = Crypto.CalcHash(bin, bin.Length, 4).Swap32();
+                        _data.Store32(entry.Offset - 4, binHash2);
 
                         Crypto.XorData(_data, entry.Offset - 4, entry.Size + 4);
                     }
@@ -249,11 +258,11 @@ namespace PS4_REGISTRY_EDITOR
             if (_data == null)
                 return;
 
-            var file = Registry.RegFiles.Find(x => x.Size == _data.Length);
+            var file = PsRegistry.RegFiles.Find(x => x.Size == _data.Length);
 
             if (file == null && BitConverter.ToUInt32(_data, 4) == 0x2A2A2A2A)
             {
-                file = Registry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
+                file = PsRegistry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
             }
 
             if (file == null)

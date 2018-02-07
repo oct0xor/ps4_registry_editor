@@ -1,51 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
-namespace PS4_REGISTRY_EDITOR
+namespace Ps4EditLib.PsRegistry
 {
-    internal class RegInfo
-    {
-        public uint RegId;
-        public int Type;
-        public int Size;
-        public string Path;
-
-        public RegInfo(uint regId, int type, int size, string path)
-        {
-            this.RegId = regId;
-            this.Type = type;
-            this.Size = size;
-            this.Path = path;
-        }
-    }
-
-    internal class RegFile
-    {
-        public string Storage;
-        public string File;
-        public int Size;
-
-        public RegFile(string storage, string file, int size)
-        {
-            this.Storage = storage;
-            this.File = file;
-            this.Size = size;
-        }
-
-        public static RegFile Open(byte[] data)
-        {
-            var file = Registry.RegFiles.Find(x => x.Size == data.Length);
-
-            if (file == null && BitConverter.ToUInt32(data, 4) == 0x2A2A2A2A)
-            {
-                file = Registry.RegFiles.Find(x => x.Storage == "regdatahdd.db");
-            }
-
-            return file;
-        }
-    }
-
-    internal static class Registry
+    public static class PsRegistry
     {
         public const short Integer = 0;
         public const short String = 1;

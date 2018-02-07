@@ -48,3 +48,6 @@ Temporary Items
 /obj/Debug
 /obj/Release
 /.vs
+/Ps4EditLib/bin/Debug
+/Ps4EditLib/obj
+/PS4_REGISTRY_EDITOR/obj
