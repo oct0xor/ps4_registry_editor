@@ -1,49 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace PS4_REGISTRY_EDITOR
+namespace Ps4EditLib.PsRegistry
 {
-    class RegInfo
+    public static class Preferences
     {
-        public uint regId;
-        public int type;
-        public int size;
-        public string path;
-
-        public RegInfo(uint regId, int type, int size, string path)
-        {
-            this.regId = regId;
-            this.type = type;
-            this.size = size;
-            this.path = path;
-        }
-    }
-
-    class RegFile
-    {
-        public string storage;
-        public string file;
-        public int size;
-
-        public RegFile(string storage, string file, int size)
-        {
-            this.storage = storage;
-            this.file = file;
-            this.size = size;
-        }
-    }
-
-    static class Registry
-    {
-        public const short INTEGER = 0;
-        public const short STRING = 1;
-        public const short BINARY = 2;
-        public const short CATEGORY = 0x10;
-
-        public static List<RegFile> regFiles = new List<RegFile>
+        public static readonly List<RegFile> RegFiles = new List<RegFile>
         {
             new RegFile("registry.nvs", "/system_data/settings/system.nvs", 0x600),
             new RegFile("regcont.db", "/system_data/settings/system.idx", 0x14000),
@@ -52,7 +13,7 @@ namespace PS4_REGISTRY_EDITOR
             new RegFile("regi.recover", "/system_data/settings/system.rec", 0x1800),
         };
 
-        public static List<RegInfo> regTable = new List<RegInfo>
+        public static readonly List<RegInfo> RegTable = new List<RegInfo>
         {
             new RegInfo(0x01000000, 0x00000010, 0x00000000, "/REGISTRY"),
             new RegInfo(0x01010000, 0x00000000, 0x00000004, "/REGISTRY/version"),

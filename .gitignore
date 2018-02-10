@@ -45,3 +45,10 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+/obj/Debug
+/obj/Release
+/.vs
+/Ps4EditLib/bin/Debug
+/Ps4EditLib/obj
+/PS4_REGISTRY_EDITOR/obj
+/PS4_REGISTRY_EDITOR/bin/Debug
